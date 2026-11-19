@@ -12,7 +12,7 @@ backend/backups/
 backend/*.db
 backend/*.backup-*
 *.db-journal
-.env
 *.pyc
-.vscode/
 .claude/
+config.bat
+node_modules
