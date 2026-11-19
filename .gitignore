@@ -1,0 +1,18 @@
+backend/.venv/
+backend/kripa.db
+__pycache__/
+frontend/node_modules/
+frontend/dist/
+backend/.env
+
+# secrets and candidate data that must never be pushed
+backend/.exam_secret
+backend/audio_cache/
+backend/backups/
+backend/*.db
+backend/*.backup-*
+*.db-journal
+.env
+*.pyc
+.vscode/
+.claude/
