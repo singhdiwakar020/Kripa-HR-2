@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Online test</title>
+<style>
+  :root { --bg:#f4f6fb; --card:#fff; --ink:#1b2236; --mute:#667089; --line:#e2e6f0; --brand:#4457e6; --brand-d:#3445c4; --ok:#14804a; --bad:#c0352b; --warn:#b26a00; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  .hide { display:none !important; }
+  .wrap { max-width:720px; margin:6vh auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:28px; box-shadow:0 6px 24px rgba(30,40,90,.07); }
+  h1 { margin:0 0 6px; font-size:24px; } h2 { margin:0 0 10px; font-size:19px; }
+  p { margin:8px 0; } .mute { color:var(--mute); }
+  label { display:block; margin:14px 0 4px; font-weight:600; }
+  input[type=email], input[type=password], input[type=text] { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:9px; font:inherit; }
+  button { font:inherit; border:1px solid var(--line); background:#fff; padding:10px 16px; border-radius:9px; cursor:pointer; }
+  button.primary { background:var(--brand); color:#fff; border-color:var(--brand); font-weight:600; }
+  button.primary:hover:not(:disabled) { background:var(--brand-d); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .err { background:#fdeceb; color:var(--bad); padding:10px 12px; border-radius:9px; margin:12px 0; }
+  .note { background:#eef1ff; padding:10px 12px; border-radius:9px; margin:12px 0; }
+  .rules li { margin:6px 0; }
+  .facts { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+  .facts span { background:#eef1ff; border-radius:999px; padding:5px 12px; font-weight:600; font-size:13px; }
+  .instr { white-space:pre-wrap; background:#fafbfe; border:1px solid var(--line); border-radius:9px; padding:12px; max-height:220px; overflow:auto; }
+  /* the test */
+  #test { min-height:100vh; display:flex; flex-direction:column; user-select:none; -webkit-user-select:none; }
+  #test textarea, #test pre { user-select:text; -webkit-user-select:text; }
+  .top { display:flex; align-items:center; gap:14px; background:#fff; border-bottom:1px solid var(--line); padding:10px 18px; position:sticky; top:0; z-index:5; }
+  .top .title { font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .timer { font:700 20px ui-monospace,Consolas,monospace; background:#eef1ff; padding:4px 12px; border-radius:9px; }
+  .timer.low { background:#fdeceb; color:var(--bad); }
+  .warns { font-size:13px; color:var(--mute); }
+  .warns b.w { color:var(--bad); }
+  .body { display:flex; flex:1; min-height:0; }
+  .side { width:200px; background:#fff; border-right:1px solid var(--line); padding:14px; overflow:auto; }
+  .side h3 { margin:0 0 8px; font-size:13px; color:var(--mute); text-transform:uppercase; letter-spacing:.04em; }
+  .nav { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:14px; }
+  .nav button { padding:7px 0; font-weight:600; }
+  .nav button.on { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .nav button.done { border-color:var(--ok); color:var(--ok); }
+  .nav button.on.done { color:#fff; }
+  .main { flex:1; padding:22px 26px; overflow:auto; }
+  .qcard { background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px; max-width:900px; }
+  .qhead { display:flex; justify-content:space-between; color:var(--mute); font-size:13px; margin-bottom:8px; }
+  .qtext { white-space:pre-wrap; font-size:16px; margin:6px 0 14px; }
+  .opt { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--line); border-radius:9px; margin:8px 0; cursor:pointer; }
+  .opt:hover { background:#f6f8ff; } .opt.sel { border-color:var(--brand); background:#eef1ff; }
+  .opt input { margin-top:4px; }
+  textarea.code { width:100%; min-height:300px; font:14px/1.5 ui-monospace,Consolas,monospace; padding:12px; border:1px solid var(--line); border-radius:9px; background:#10162b; color:#e8ecff; tab-size:4; resize:vertical; }
+  .cases { margin-top:12px; font-size:13px; }
+  .case { border:1px solid var(--line); border-radius:9px; padding:8px 10px; margin:6px 0; background:#fafbfe; }
+  .case.pass { border-color:#9bd5b5; background:#f1faf5; } .case.fail { border-color:#f0b6b1; background:#fff6f5; }
+  .case pre { margin:4px 0 0; white-space:pre-wrap; font:12px ui-monospace,Consolas,monospace; }
+  .foot { display:flex; justify-content:space-between; align-items:center; margin-top:16px; max-width:900px; }
+  .saved { font-size:12px; color:var(--mute); }
+  .overlay { position:fixed; inset:0; background:rgba(15,20,45,.78); display:flex; align-items:center; justify-content:center; z-index:50; padding:16px; }
+  .modal { background:#fff; border-radius:14px; padding:26px; max-width:520px; width:100%; }
+  .modal.warn { border-top:6px solid var(--warn); } .modal.stop { border-top:6px solid var(--bad); }
+  @media (max-width:760px) { .side { display:none; } .main { padding:14px; } }
+</style>
+</head>
+<body>
+
+<div id="blocked" class="wrap hide"><div class="card"><h1>Please use a computer</h1>
+  <p>This test needs a laptop or desktop computer with a full-screen browser (Chrome, Edge or Firefox). It cannot be taken on a phone or tablet.</p></div></div>
+
+<div id="login" class="wrap hide"><div class="card">
+  <h1>Online test</h1><p class="mute">Log in with the email address the invitation was sent to and the password you were given.</p>
+  <div id="loginErr" class="err hide"></div>
+  <form id="loginForm" autocomplete="off">
+    <label for="em">Email</label><input id="em" type="email" required autocomplete="off">
+    <label for="pw">Password</label><input id="pw" type="password" required autocomplete="off">
+    <p><button class="primary" id="loginBtn" style="width:100%;margin-top:10px">Log in</button></p>
+  </form></div></div>
+
+<div id="intro" class="wrap hide"><div class="card">
+  <h1 id="iTitle"></h1><p class="mute" id="iHello"></p>
+  <div class="facts" id="iFacts"></div>
+  <div id="iInstr" class="instr hide"></div>
+  <h2 style="margin-top:18px">Rules</h2>
+  <ul class="rules" id="iRules"></ul>
+  <div id="iErr" class="err hide"></div>
+  <label style="font-weight:400;display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="iAgree" style="margin-top:5px"><span>I have read the rules and I agree to follow them.</span></label>
+  <p><button class="primary" id="iStart" disabled style="width:100%;margin-top:8px"></button></p>
+</div></div>
+
+<div id="test" class="hide">
+  <div class="top"><div class="title" id="tTitle"></div><div class="warns" id="tWarns"></div><div class="timer" id="tTimer">--:--</div>
+    <button class="primary" id="tSubmit">Submit test</button></div>
+  <div class="body"><div class="side"><h3>Questions</h3><div class="nav" id="tNav"></div><div class="saved" id="tSaved"></div></div>
+    <div class="main" id="tMain"></div></div>
+</div>
+
+<div id="done" class="wrap hide"><div class="card"><h1 id="dTitle"></h1><p id="dText"></p><p class="mute" id="dScore"></p></div></div>
+
+<div id="ov" class="overlay hide"><div class="modal" id="ovBox"></div></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const S = { token: null, exam: null, questions: [], answers: {}, cur: 0, offset: 0, endsAt: null, running: false, timer: null, saves: {}, vLock: 0 };
+try { S.token = sessionStorage.getItem("exam_token"); } catch (e) {}
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") el.className = v; else if (k.startsWith("on")) el.addEventListener(k.slice(2), v); else if (v !== false && v != null) el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+function show(id) { for (const s of ["blocked", "login", "intro", "test", "done"]) $(s).classList.toggle("hide", s !== id); }
+
+async function api(path, method = "GET", body) {
+  const res = await fetch("/api/exam" + path, { method, headers: { "Content-Type": "application/json", ...(S.token ? { Authorization: "Bearer " + S.token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  let data = {}; try { data = await res.json(); } catch (e) {}
+  if (res.status === 401 && path !== "/login") { logout(); throw new Error("Please log in again."); }
+  if (!res.ok) throw new Error(data.detail || "Something went wrong (" + res.status + ")");
+  return data;
+}
+function logout() { S.token = null; try { sessionStorage.removeItem("exam_token"); } catch (e) {} stopTest(); show("login"); }
+
+/* ---------- login ---------- */
+$("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault(); $("loginErr").classList.add("hide"); $("loginBtn").disabled = true;
+  try {
+    const d = await api("/login", "POST", { email: $("em").value, password: $("pw").value });
+    S.token = d.token; try { sessionStorage.setItem("exam_token", d.token); } catch (x) {}
+    $("pw").value = ""; route(d.exam);
+  } catch (err) { $("loginErr").textContent = err.message; $("loginErr").classList.remove("hide"); }
+  finally { $("loginBtn").disabled = false; }
+});
+
+function route(exam) {
+  S.exam = exam; S.offset = Date.parse(exam.server_now) - Date.now();
+  if (["submitted", "timed_out", "terminated"].includes(exam.status)) return finished(exam);
+  showIntro(exam);
+}
+
+/* ---------- instructions ---------- */
+function showIntro(x) {
+  $("iTitle").textContent = x.title;
+  $("iHello").textContent = x.first_name ? "Hello " + x.first_name + "." : "";
+  $("iFacts").replaceChildren(h("span", {}, x.duration_minutes + " minutes"), h("span", {}, x.question_count + " questions"), h("span", {}, x.total_marks + " marks"));
+  $("iInstr").textContent = x.instructions || ""; $("iInstr").classList.toggle("hide", !x.instructions);
+  const resume = x.status === "in_progress";
+  $("iRules").replaceChildren(
+    h("li", {}, "The test runs in full-screen mode. It starts when you press the button below" + (resume ? " and continues with the time you have left." : ", and the timer cannot be paused.")),
+    h("li", {}, "Do not switch tabs, windows or apps, and do not leave full screen. You get " + x.max_violations + " warning" + (x.max_violations === 1 ? "" : "s") + ". The next time you leave, it is against the policy: the test ends and your answers so far are submitted automatically."),
+    h("li", {}, "Turn off notifications and close other programs before you start, so nothing pulls you out of the window."),
+    h("li", {}, "Your answers are saved as you go. When time runs out, the test is submitted automatically."),
+    h("li", {}, "Each test can be taken once.")
+  );
+  $("iStart").textContent = resume ? "Continue the test in full screen" : "Start the test in full screen";
+  $("iAgree").checked = false; $("iStart").disabled = true; $("iErr").classList.add("hide");
+  show("intro");
+}
+$("iAgree").addEventListener("change", () => { $("iStart").disabled = !$("iAgree").checked; });
+$("iStart").addEventListener("click", async () => {
+  $("iErr").classList.add("hide"); $("iStart").disabled = true;
+  try {
+    await document.documentElement.requestFullscreen();
+  } catch (e) { $("iErr").textContent = "Full screen is required. Please allow it and press the button again."; $("iErr").classList.remove("hide"); $("iStart").disabled = false; return; }
+  try {
+    const d = await api("/start", "POST");
+    S.exam = d.exam; S.offset = Date.parse(d.exam.server_now) - Date.now();
+    if (!d.questions) { await leaveFullscreen(); return finished(d.exam); }
+    S.questions = d.questions; S.answers = d.answers || {}; S.endsAt = Date.parse(d.exam.ends_at); S.cur = 0;
+    beginTest();
+  } catch (e) { await leaveFullscreen(); $("iErr").textContent = e.message; $("iErr").classList.remove("hide"); $("iStart").disabled = false; }
+});
+async function leaveFullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) {} }
+
+/* ---------- the test ---------- */
+function beginTest() {
+  S.running = true; show("test");
+  $("tTitle").textContent = S.exam.title; renderWarns(); renderNav(); renderQuestion();
+  clearInterval(S.timer); S.timer = setInterval(tick, 500); tick();
+}
+function stopTest() { S.running = false; clearInterval(S.timer); }
+function remainingMs() { return S.endsAt - (Date.now() + S.offset); }
+function tick() {
+  const ms = remainingMs();
+  if (ms <= 0) { timeUp(); return; }
+  const s = Math.ceil(ms / 1000), m = Math.floor(s / 60), hh = Math.floor(m / 60);
+  $("tTimer").textContent = (hh ? String(hh).padStart(2, "0") + ":" : "") + String(m % 60).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  $("tTimer").classList.toggle("low", ms < 5 * 60 * 1000);
+}
+async function timeUp() {
+  if (!S.running) return; stopTest();
+  try { await flush(); } catch (e) {}
+  try { const x = await api("/me"); await leaveFullscreen(); finished(x); } catch (e) { await leaveFullscreen(); finished({ status: "timed_out", max_violations: S.exam.max_violations }); }
+}
+function renderWarns() {
+  const used = S.exam.violation_count || 0, max = S.exam.max_violations;
+  $("tWarns").replaceChildren("Warnings: ", h("b", { class: used ? "w" : "" }, used + " / " + max));
+}
+function answered(q) { const a = S.answers[q.id]; return q.kind === "mcq" ? !!(a && a.choice && a.choice.length) : !!(a && a.code && a.code.trim() && a.code.trim() !== (q.starter_code || "").trim()); }
+function renderNav() {
+  $("tNav").replaceChildren(...S.questions.map((q, i) => h("button", { class: (i === S.cur ? "on " : "") + (answered(q) ? "done" : ""), onclick: () => { S.cur = i; renderNav(); renderQuestion(); } }, i + 1)));
+}
+function renderQuestion() {
+  const q = S.questions[S.cur], a = S.answers[q.id] || {};
+  const card = h("div", { class: "qcard" }, h("div", { class: "qhead" }, h("span", {}, "Question " + (S.cur + 1) + " of " + S.questions.length + " · " + (q.kind === "mcq" ? (q.multiple ? "Choose all that apply" : "Choose one") : "Coding (Python 3)")), h("span", {}, q.marks + " mark" + (q.marks === 1 ? "" : "s"))), h("div", { class: "qtext" }, q.text));
+  if (q.kind === "mcq") {
+    const chosen = new Set(a.choice || []);
+    q.options.forEach((o, i) => {
+      const inp = h("input", { type: q.multiple ? "checkbox" : "radio", name: "q" + q.id });
+      inp.checked = chosen.has(i);
+      const row = h("label", { class: "opt" + (chosen.has(i) ? " sel" : "") }, inp, h("span", {}, o));
+      inp.addEventListener("change", () => {
+        const next = new Set(S.answers[q.id] && S.answers[q.id].choice || []);
+        if (q.multiple) { inp.checked ? next.add(i) : next.delete(i); } else { next.clear(); next.add(i); }
+        S.answers[q.id] = { choice: [...next].sort((x, y) => x - y) }; queueSave(q.id); renderNav(); renderQuestion();
+      });
+      card.append(row);
+    });
+  } else {
+    const ta = h("textarea", { class: "code", spellcheck: "false", autocapitalize: "off", autocomplete: "off" });
+    ta.value = a.code != null ? a.code : (q.starter_code || "");
+    if (a.code == null && q.starter_code) S.answers[q.id] = { code: q.starter_code };
+    ta.addEventListener("input", () => { S.answers[q.id] = { code: ta.value }; queueSave(q.id); renderNavSoft(); });
+    ta.addEventListener("keydown", (e) => { if (e.key === "Tab") { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText("    ", s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); } });
+    const out = h("div", { class: "cases" });
+    const run = h("button", {}, "Run on sample tests");
+    run.addEventListener("click", async () => {
+      run.disabled = true; out.replaceChildren(h("p", { class: "mute" }, "Running…"));
+      try {
+        await flush();
+        const r = await api("/run", "POST", { question_id: q.id, code: ta.value });
+        out.replaceChildren(...r.results.map((c, i) => h("div", { class: "case " + (c.passed ? "pass" : "fail") },
+          h("b", {}, "Sample " + (i + 1) + ": " + (c.passed ? "passed" : c.timeout ? "time limit exceeded" : "not matching")),
+          h("pre", {}, "Input:\n" + c.input), h("pre", {}, "Expected:\n" + c.expected), h("pre", {}, "Your output:\n" + (c.got || "(nothing)") + (c.error ? "\n" + c.error : "")))));
+      } catch (e) { out.replaceChildren(h("div", { class: "err" }, e.message)); } finally { run.disabled = false; }
+    });
+    const samples = (q.samples || []).map((c, i) => h("div", { class: "case" }, h("b", {}, "Sample " + (i + 1)), h("pre", {}, "Input:\n" + c.input), h("pre", {}, "Expected output:\n" + c.expected)));
+    card.append(h("p", { class: "mute" }, "Read the input with input() and print the answer. Some hidden tests are also used when marking."), ...samples, h("div", { style: "margin-top:10px" }), ta, h("div", { style: "margin-top:10px" }, run), out);
+  }
+  const foot = h("div", { class: "foot" }, h("button", { disabled: S.cur === 0, onclick: () => { S.cur--; renderNav(); renderQuestion(); } }, "← Previous"),
+    h("button", { class: S.cur === S.questions.length - 1 ? "" : "primary", disabled: S.cur === S.questions.length - 1, onclick: () => { S.cur++; renderNav(); renderQuestion(); } }, "Next →"));
+  $("tMain").replaceChildren(card, foot);
+}
+function renderNavSoft() { const btns = $("tNav").children; S.questions.forEach((q, i) => btns[i] && btns[i].classList.toggle("done", answered(q))); }
+
+/* ---------- saving ---------- */
+function queueSave(qid) {
+  $("tSaved").textContent = "Saving…"; clearTimeout(S.saves[qid]);
+  S.saves[qid] = setTimeout(() => saveNow(qid), 700);
+}
+async function saveNow(qid) {
+  clearTimeout(S.saves[qid]); delete S.saves[qid];
+  const a = S.answers[qid] || {}, body = { question_id: qid };
+  if (a.choice) body.choice = a.choice; else body.code = a.code || "";
+  try { await api("/answer", "PUT", body); $("tSaved").textContent = "All answers saved"; } catch (e) { $("tSaved").textContent = "Could not save: " + e.message; throw e; }
+}
+async function flush() { await Promise.all(Object.keys(S.saves).map((id) => saveNow(Number(id)))); }
+
+/* ---------- submit ---------- */
+function overlay(box) { $("ovBox").replaceChildren(...box.kids); $("ovBox").className = "modal " + (box.cls || ""); $("ov").classList.remove("hide"); }
+function closeOverlay() { $("ov").classList.add("hide"); }
+$("tSubmit").addEventListener("click", () => {
+  const left = S.questions.filter((q) => !answered(q)).length;
+  overlay({ kids: [h("h2", {}, "Submit the test?"), h("p", {}, left ? left + " question" + (left === 1 ? " is" : "s are") + " not answered. " : "All questions are answered. "), h("p", { class: "mute" }, "You cannot change your answers after submitting."),
+    h("div", { style: "display:flex;gap:10px;justify-content:flex-end;margin-top:14px" }, h("button", { onclick: closeOverlay }, "Go back"), h("button", { class: "primary", id: "yesSubmit", onclick: doSubmit }, "Yes, submit"))] });
+});
+async function doSubmit() {
+  $("yesSubmit").disabled = true;
+  try { await flush(); const x = await api("/submit", "POST"); stopTest(); closeOverlay(); await leaveFullscreen(); finished(x); }
+  catch (e) { $("yesSubmit").disabled = false; $("ovBox").append(h("div", { class: "err" }, e.message)); }
+}
+
+/* ---------- finished ---------- */
+function finished(x) {
+  stopTest(); closeOverlay(); show("done");
+  const t = { submitted: ["Test submitted", "Thank you. Your answers have been submitted. You can close this window."],
+    timed_out: ["Time is up", "Your time ended, so your answers were submitted automatically. You can close this window."],
+    terminated: ["Test ended", "Your test was ended because you left the test window more than " + x.max_violations + " time" + (x.max_violations === 1 ? "" : "s") + ", which is against the test policy. Your answers so far were submitted automatically."] }[x.status] || ["Test", ""];
+  $("dTitle").textContent = t[0]; $("dText").textContent = t[1];
+  $("dScore").textContent = x.score ? "Your score: " + x.score.total + " out of " + x.score.max : "";
+  try { sessionStorage.removeItem("exam_token"); } catch (e) {}
+}
+
+/* ---------- the rules: leaving the window ---------- */
+async function violation(kind) {
+  if (!S.running || Date.now() < S.vLock) return;
+  S.vLock = Date.now() + 1500; // one action raises several browser events: report once
+  try {
+    const r = await api("/violation", "POST", { kind });
+    if (r.status && r.status !== "in_progress") { const x = await api("/me"); await leaveFullscreen(); return finished(x); }
+    S.exam.violation_count = r.count; renderWarns();
+    if (r.ignored) { return needFullscreenOverlay(); }
+    const final = r.count >= r.max;
+    overlay({ cls: "warn", kids: [h("h2", {}, "Warning " + r.count + " of " + r.max), h("p", {}, "You left the test window or full screen. This is not allowed."),
+      h("p", {}, final ? "This was your final warning. The next time you leave, it is against the policy, and the test will end and be submitted automatically." : "If you do it again, you will get a final warning, and after that the test ends."),
+      h("button", { class: "primary", id: "back", onclick: backToTest }, "Return to the test")] });
+  } catch (e) { needFullscreenOverlay(); }
+}
+function needFullscreenOverlay() {
+  if (!$("ov").classList.contains("hide")) return;
+  overlay({ kids: [h("h2", {}, "Return to full screen"), h("p", {}, "The test must stay in full screen."), h("button", { class: "primary", onclick: backToTest }, "Return to the test")] });
+}
+async function backToTest() {
+  try { await document.documentElement.requestFullscreen(); closeOverlay(); } catch (e) { $("ovBox").append(h("div", { class: "err" }, "Please allow full screen to continue.")); }
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) violation("tab_hidden"); });
+window.addEventListener("blur", () => { violation("window_blur"); });
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) violation("fullscreen_exit"); });
+document.addEventListener("contextmenu", (e) => { if (S.running && e.target.tagName !== "TEXTAREA") e.preventDefault(); });
+for (const ev of ["copy", "cut"]) document.addEventListener(ev, (e) => { if (S.running && e.target.tagName !== "TEXTAREA") e.preventDefault(); });
+window.addEventListener("beforeunload", (e) => { if (S.running) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- start ---------- */
+(async function init() {
+  const small = matchMedia("(pointer:coarse)").matches && Math.min(screen.width, screen.height) < 900;
+  if (small || !document.documentElement.requestFullscreen) return show("blocked");
+  if (S.token) { try { route(await api("/me")); return; } catch (e) {} }
+  show("login");
+})();
+</script>
+</body>
+</html>
